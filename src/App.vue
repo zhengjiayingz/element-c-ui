@@ -4,4 +4,5 @@ import HelloWorld from './components/HelloWorld.vue'
 
 <template>
   <HelloWorld />
+  123
 </template>
