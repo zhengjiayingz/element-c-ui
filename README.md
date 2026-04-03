@@ -1,5 +1,18 @@
-# Vue 3 + Vite
+# element-c-ui
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+基于 Vue 3、Vite 与 Element Plus 的配置驱动 UI 组件库（开发中）。
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## 开发
+
+```bash
+npm install
+npm run dev
+```
+
+## 构建
+
+```bash
+npm run build
+```
+
+更多 Vue 3 与 Vite 说明见 [Vue 文档](https://vuejs.org/) 与 [Vite 文档](https://vite.dev/)。
