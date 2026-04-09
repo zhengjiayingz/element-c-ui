@@ -1,47 +1,59 @@
+/**
+ * CForm 配置类型（按步扩展）
+ */
+
 import type { FormItemRule, FormRules } from 'element-plus'
 
-/** 与 el-form-item 一致；也可写 t-ui 的 `value` 表示同一字段 */
-export interface CFormField {
-  prop?: string
-  value?: string
+/** 当前支持的表单项类型（后续可继续加） */
+export type CFormFieldType =
+  | 'input'
+  | 'textarea'
+  | 'number'
+  | 'select'
+  | 'switch'
+  | 'date'
+
+export interface CFormSelectOption {
   label: string
-  /** 控件类型，默认 input */
-  type?:
-    | 'input'
-    | 'textarea'
-    | 'number'
-    | 'select'
-    | 'switch'
-    | 'date'
+  value: string | number | boolean
+}
+
+export interface CFormFieldItem {
+  /** 对应 el-form-item 的 prop，与 model 的 key 一致 */
+  prop: string
+  label: string
+  type: CFormFieldType
+  /** type 为 select 时下拉选项 */
+  options?: CFormSelectOption[]
   placeholder?: string
-  /** 下拉选项，或与 listTypeInfo + list 二选一 */
-  options?: Array<{ label: string; value: string | number | boolean }>
-  /** 对应 formOpts.listTypeInfo 的 key（t-ui 风格） */
-  list?: string
-  /** 字典字段名，默认 dictLabel / dictValue */
-  arrLabel?: string
-  arrKey?: string
-  /** 透传给内部 Element 组件 */
-  bind?: Record<string, unknown>
+  /** type 为 textarea 时行数 */
+  rows?: number
   /**
-   * 栅格列占位 1–24，默认按 `formOpts.columns` 均分（如 3 列则默认 8）
-   * 需要整行时可设 24（如长文本）
+   * 占栅格列数（1–24），与 Element Plus `el-col` 的 span 一致。
+   * 不设时按 `options.columns` 均分一行（24 / columns）。
    */
   colSpan?: number
-  hidden?: boolean | ((data: Record<string, unknown>) => boolean)
+  /** 该项校验规则，对应 `el-form-item` 的 rules，可与表单级 rules 叠加 */
   rules?: FormItemRule | FormItemRule[]
 }
 
-export interface CFormOpts {
-  fieldList: CFormField[]
-  rules?: FormRules
-  labelWidth?: string
+/** 表单级：布局等，与 el-form 对齐的字段先放这里 */
+export interface CFormOptions {
+  labelWidth?: string | number
   labelPosition?: 'left' | 'right' | 'top'
-  /** 每行表单项列数，默认 3（24 栅格均分） */
+  /** 每行展示几个表单项；默认 1（整行一个） */
   columns?: number
-  /** t-ui 风格：select 选项字典 */
-  listTypeInfo?: Record<
-    string,
-    Array<Record<string, string | number | boolean | undefined>>
-  >
+  /** `el-row` 栅格间隔（px），默认 16 */
+  gutter?: number
+  /** 表单级校验规则，key 与 `model` 字段名一致，对应 `el-form` 的 rules */
+  rules?: FormRules
+}
+
+export interface CFormProps {
+  /** 表单数据，对应 el-form 的 model */
+  model: Record<string, unknown>
+  /** 表单项配置，顺序即展示顺序 */
+  fields: CFormFieldItem[]
+  /** 可选；不传则用 el-form 默认行为 */
+  options?: CFormOptions
 }

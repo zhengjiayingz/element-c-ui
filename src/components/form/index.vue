@@ -1,80 +1,75 @@
 <template>
   <el-form
-    ref="formRef"
+    ref="innerFormRef"
     class="c-form"
-    :model="formData"
-    :rules="mergedRules"
-    :label-width="formOpts.labelWidth ?? '100px'"
-    :label-position="formOpts.labelPosition ?? 'right'"
+    :model="formModel"
+    :rules="formRules"
+    :label-width="labelWidth"
+    :label-position="labelPosition"
   >
     <el-row :gutter="rowGutter">
       <el-col
-        v-for="field in visibleFields"
-        :key="fieldKey(field)"
-        :span="colSpanOf(field)"
+        v-for="item in fields"
+        :key="item.prop"
+        :span="spanFor(item)"
       >
         <el-form-item
-          :label="field.label"
-          :prop="fieldKey(field)"
-          :rules="field.rules"
+          :label="item.label"
+          :prop="item.prop"
+          :rules="item.rules"
         >
-      <template v-if="field.type === 'textarea'">
-        <el-input
-          v-model="formData[fieldKey(field)]"
-          type="textarea"
-          :placeholder="placeholderOf(field)"
-          v-bind="field.bind"
-        />
-      </template>
-
-      <template v-else-if="field.type === 'number'">
-        <el-input-number
-          v-model="formData[fieldKey(field)]"
-          :placeholder="placeholderOf(field)"
-          style="width: 100%"
-          v-bind="field.bind"
-        />
-      </template>
-
-      <template v-else-if="field.type === 'select'">
-        <el-select
-          v-model="formData[fieldKey(field)]"
-          :placeholder="placeholderOf(field)"
-          style="width: 100%"
-          clearable
-          v-bind="field.bind"
-        >
-          <el-option
-            v-for="(opt, i) in optionsOf(field)"
-            :key="i"
-            :label="opt.label"
-            :value="opt.value"
-          />
-        </el-select>
-      </template>
-
-      <template v-else-if="field.type === 'switch'">
-        <el-switch v-model="formData[fieldKey(field)]" v-bind="field.bind" />
-      </template>
-
-      <template v-else-if="field.type === 'date'">
-        <el-date-picker
-          v-model="formData[fieldKey(field)]"
-          type="date"
-          :placeholder="placeholderOf(field)"
-          style="width: 100%"
-          value-format="YYYY-MM-DD"
-          v-bind="field.bind"
-        />
-      </template>
-
-      <template v-else>
-        <el-input
-          v-model="formData[fieldKey(field)]"
-          :placeholder="placeholderOf(field)"
-          v-bind="field.bind"
-        />
-      </template>
+          <template v-if="item.type === 'input'">
+            <el-input
+              v-model="formModel[item.prop]"
+              :placeholder="item.placeholder"
+              clearable
+              style="width: 100%"
+            />
+          </template>
+          <template v-else-if="item.type === 'textarea'">
+            <el-input
+              v-model="formModel[item.prop]"
+              type="textarea"
+              :rows="item.rows ?? 3"
+              :placeholder="item.placeholder"
+              style="width: 100%"
+            />
+          </template>
+          <template v-else-if="item.type === 'number'">
+            <el-input-number
+              v-model="formModel[item.prop] as number | undefined"
+              :placeholder="item.placeholder"
+              style="width: 100%"
+            />
+          </template>
+          <template v-else-if="item.type === 'select'">
+            <el-select
+              v-model="formModel[item.prop]"
+              :placeholder="item.placeholder"
+              clearable
+              filterable
+              style="width: 100%"
+            >
+              <el-option
+                v-for="opt in item.options ?? []"
+                :key="String(opt.value)"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+          </template>
+          <template v-else-if="item.type === 'switch'">
+            <el-switch v-model="formModel[item.prop] as boolean" />
+          </template>
+          <template v-else-if="item.type === 'date'">
+            <el-date-picker
+              v-model="formModel[item.prop]"
+              type="date"
+              value-format="YYYY-MM-DD"
+              :placeholder="item.placeholder ?? '选择日期'"
+              style="width: 100%"
+            />
+          </template>
         </el-form-item>
       </el-col>
     </el-row>
@@ -82,100 +77,57 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import type { FormInstance, FormRules } from 'element-plus'
-import type { CFormField, CFormOpts } from './types'
+import { computed, ref, toRef } from 'vue'
+import type { FormInstance } from 'element-plus'
+import type { CFormProps } from './types'
 
 defineOptions({ name: 'CForm' })
 
-const props = defineProps<{
-  /** 表单数据，请传入 reactive / ref 对象，便于双向绑定 */
-  formData: Record<string, unknown>
-  formOpts: CFormOpts
-}>()
-
-const formRef = ref<FormInstance>()
-
-const mergedRules = computed<FormRules | undefined>(() => props.formOpts.rules)
-
-const rowGutter = 16
-
-const baseColSpan = computed(() => {
-  const cols = props.formOpts.columns ?? 3
-  const c = Math.min(24, Math.max(1, cols))
-  return Math.floor(24 / c)
+const props = withDefaults(defineProps<CFormProps>(), {
+  options: undefined
 })
 
-function colSpanOf(f: CFormField): number {
-  if (f.colSpan != null) {
-    return Math.min(24, Math.max(1, f.colSpan))
-  }
-  return baseColSpan.value
-}
+const fields = computed(() => props.fields)
 
-function fieldKey(f: CFormField): string {
-  const k = f.prop ?? f.value
-  return k ?? ''
-}
+/** 与父组件 :model 传入对象为同一引用，供 el-form 校验 / resetFields 使用 */
+const formModel = toRef(props, 'model')
 
-const visibleFields = computed(() => {
-  const list = props.formOpts.fieldList ?? []
-  return list.filter((f) => {
-    const k = fieldKey(f)
-    if (!k) return false
-    const h = f.hidden
-    if (typeof h === 'function') return !h(props.formData)
-    return !h
-  })
+const innerFormRef = ref<FormInstance>()
+
+const labelWidth = computed(() => props.options?.labelWidth)
+const labelPosition = computed(() => props.options?.labelPosition ?? 'right')
+
+const formRules = computed(() => props.options?.rules)
+
+const rowGutter = computed(() => props.options?.gutter ?? 16)
+
+/** 每行表单项数量，至少为 1 */
+const columns = computed(() => {
+  const n = props.options?.columns ?? 1
+  return n >= 1 ? n : 1
 })
 
-function placeholderOf(f: CFormField): string {
-  if (f.placeholder) return f.placeholder
-  const t = f.type ?? 'input'
-  if (t === 'select' || t === 'date') return `请选择${f.label}`
-  return `请输入${f.label}`
-}
+/** 未指定 colSpan 时，按 columns 均分 24 栅格 */
+const defaultColSpan = computed(() => Math.floor(24 / columns.value) || 24)
 
-function optionsOf(f: CFormField): Array<{ label: string; value: string | number | boolean }> {
-  if (f.options?.length) return f.options
-  const listKey = f.list
-  if (!listKey || !props.formOpts.listTypeInfo?.[listKey]) return []
-  const raw = props.formOpts.listTypeInfo[listKey]
-  const lk = f.arrLabel ?? 'dictLabel'
-  const vk = f.arrKey ?? 'dictValue'
-  return raw.map((row) => ({
-    label: String(row[lk] ?? ''),
-    value: row[vk] as string | number | boolean,
-  }))
-}
-
-async function validate(): Promise<boolean> {
-  if (!formRef.value) return false
-  try {
-    await formRef.value.validate()
-    return true
-  } catch {
-    return false
+function spanFor(item: (typeof props.fields)[number]) {
+  if (item.colSpan != null) {
+    return Math.min(24, Math.max(1, item.colSpan))
   }
+  return defaultColSpan.value
 }
 
-function resetFields(): void {
-  formRef.value?.resetFields()
-}
-
-function clearValidate(propsArg?: string | string[]): void {
-  formRef.value?.clearValidate(propsArg)
-}
-
-defineExpose({ validate, resetFields, clearValidate, formRef })
+defineExpose({
+  validate: (callback?: Parameters<FormInstance['validate']>[0]) =>
+    innerFormRef.value?.validate(callback),
+  resetFields: () => innerFormRef.value?.resetFields(),
+  clearValidate: (propsArg?: string | string[]) =>
+    innerFormRef.value?.clearValidate(propsArg),
+})
 </script>
 
 <style lang="scss" scoped>
 .c-form {
   width: 100%;
-}
-
-.c-form :deep(.el-form-item) {
-  margin-bottom: 18px;
 }
 </style>
